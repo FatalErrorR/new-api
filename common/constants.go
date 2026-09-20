@@ -124,6 +124,10 @@ var TelegramBotName = ""
 var QuotaForNewUser = 0
 var QuotaForInviter = 0
 var QuotaForInvitee = 0
+
+// QuotaRebateRateForInviter is the global percentage of an invitee's top-up
+// credited to the inviter's aff_quota. 0 disables recharge rebate. 10 = 10%.
+var QuotaRebateRateForInviter = 0.0
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false

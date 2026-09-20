@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   Link2,
   CreditCard,
+  Users,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -197,6 +198,19 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
+
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault()
+            setCurrentRow(user)
+            setOpen('invitees')
+          }}
+        >
+          {t('View invitees')}
+          <DropdownMenuShortcut>
+            <Users size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
 
         <DropdownMenuItem
           onSelect={(event) => {

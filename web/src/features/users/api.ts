@@ -29,6 +29,7 @@ import type {
   ManageUserAction,
   ManageUserQuotaPayload,
   ApiResponse,
+  InviteeListResult,
 } from './types'
 
 // ============================================================================
@@ -79,6 +80,33 @@ export async function searchUsers(
   if (sort_by) queryParams.set('sort_by', sort_by)
   if (sort_order) queryParams.set('sort_order', sort_order)
   const res = await api.get(`/api/user/search?${queryParams.toString()}`)
+  return res.data
+}
+
+/**
+ * List users invited by the current account
+ */
+export async function getSelfInvitees(
+  page = 1,
+  pageSize = 10
+): Promise<ApiResponse<InviteeListResult>> {
+  const res = await api.get('/api/user/aff/invitees', {
+    params: { p: page, page_size: pageSize },
+  })
+  return res.data
+}
+
+/**
+ * List users invited by a specific user (admin)
+ */
+export async function getUserInvitees(
+  id: number,
+  page = 1,
+  pageSize = 10
+): Promise<ApiResponse<InviteeListResult>> {
+  const res = await api.get(`/api/user/${id}/invitees`, {
+    params: { p: page, page_size: pageSize },
+  })
   return res.data
 }
 

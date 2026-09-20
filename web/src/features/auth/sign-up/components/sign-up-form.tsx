@@ -94,6 +94,7 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
+      affCode: '',
     },
   })
 
@@ -132,11 +133,14 @@ export function SignUpForm({
   }, [requiresLegalConsent])
 
   useEffect(() => {
-    const aff = new URLSearchParams(window.location.search).get('aff')?.trim()
+    const aff =
+      new URLSearchParams(window.location.search).get('aff')?.trim() ||
+      getAffiliateCode()
     if (aff) {
       saveAffiliateCode(aff)
+      form.setValue('affCode', aff)
     }
-  }, [])
+  }, [form])
 
   async function onSubmit(data: z.infer<typeof registerFormSchema>) {
     if (requiresLegalConsent && !agreedToLegal) {
@@ -160,12 +164,16 @@ export function SignUpForm({
 
     setIsLoading(true)
     try {
+      const affCode = data.affCode?.trim() || getAffiliateCode()
+      if (affCode) {
+        saveAffiliateCode(affCode)
+      }
       const res = await register({
         username: data.username,
         password: data.password,
         email: data.email || undefined,
         verification_code: verificationCode || undefined,
-        aff_code: getAffiliateCode(),
+        aff_code: affCode || undefined,
         turnstile: turnstileToken,
       })
 
@@ -289,6 +297,31 @@ export function SignUpForm({
               <FormLabel>{t('Confirm password')}</FormLabel>
               <FormControl>
                 <PasswordInput placeholder={t('Confirm password')} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='affCode'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Invitation Code')}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={t('Enter invitation code (optional)')}
+                  autoComplete='off'
+                  {...field}
+                  onChange={(event) => {
+                    field.onChange(event)
+                    const value = event.currentTarget.value.trim()
+                    if (value) {
+                      saveAffiliateCode(value)
+                    }
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

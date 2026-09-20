@@ -1,6 +1,8 @@
 package model
 
 import (
+	"errors"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -134,6 +136,7 @@ func InitOptionMap() {
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
+	common.OptionMap["QuotaRebateRateForInviter"] = strconv.FormatFloat(common.QuotaRebateRateForInviter, 'f', -1, 64)
 	common.OptionMap["QuotaRemindThreshold"] = strconv.Itoa(common.QuotaRemindThreshold)
 	common.OptionMap["PreConsumedQuota"] = strconv.Itoa(common.PreConsumedQuota)
 	common.OptionMap["ModelRequestRateLimitCount"] = strconv.Itoa(setting.ModelRequestRateLimitCount)
@@ -214,6 +217,12 @@ func validateOptionValue(key string, value string) error {
 	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
+	}
+	if key == "QuotaRebateRateForInviter" {
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+		if err != nil || parsed < 0 || parsed > 100 || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
+			return errors.New("QuotaRebateRateForInviter must be between 0 and 100")
+		}
 	}
 	return nil
 }
@@ -536,6 +545,9 @@ func updateOptionMap(key string, value string) (err error) {
 		common.QuotaForInviter, _ = strconv.Atoi(value)
 	case "QuotaForInvitee":
 		common.QuotaForInvitee, _ = strconv.Atoi(value)
+	case "QuotaRebateRateForInviter":
+		parsed, _ := strconv.ParseFloat(value, 64)
+		common.QuotaRebateRateForInviter = ClampRebateRatePercent(parsed)
 	case "QuotaRemindThreshold":
 		common.QuotaRemindThreshold, _ = strconv.Atoi(value)
 	case "PreConsumedQuota":

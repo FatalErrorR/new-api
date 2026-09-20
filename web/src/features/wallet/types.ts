@@ -240,6 +240,8 @@ export interface UserWalletData {
   aff_history_quota: number
   /** Number of successful affiliate invites */
   aff_count: number
+  /** Effective inviter recharge rebate rate in percent (exclusive override or global). */
+  effective_aff_rebate_rate?: number
   /** User group */
   group: string
 }

@@ -33,6 +33,7 @@ interface AffiliateRewardsCardProps {
   user: UserWalletData | null
   affiliateLink: string
   onTransfer: () => void
+  onViewInvitees: () => void
   complianceConfirmed?: boolean
   loading?: boolean
 }
@@ -41,6 +42,7 @@ export function AffiliateRewardsCard({
   user,
   affiliateLink,
   onTransfer,
+  onViewInvitees,
   complianceConfirmed = true,
   loading,
 }: AffiliateRewardsCardProps) {
@@ -61,6 +63,10 @@ export function AffiliateRewardsCard({
   }
 
   const hasRewards = (user?.aff_quota ?? 0) > 0
+  const rebateRate = user?.effective_aff_rebate_rate ?? 0
+  const formattedRebateRate = Number.isInteger(rebateRate)
+    ? String(rebateRate)
+    : rebateRate.toFixed(2)
 
   return (
     <Card data-card-hover='false' className='bg-muted/20 py-0'>
@@ -73,10 +79,15 @@ export function AffiliateRewardsCard({
             <h3 className='truncate text-sm font-semibold'>
               {t('Referral Program')}
             </h3>
-            <p className='text-muted-foreground line-clamp-1 text-xs'>
-              {t(
-                'Earn rewards when users join through your referral link. Transfer accumulated rewards to your balance anytime.'
-              )}
+            <p className='text-muted-foreground line-clamp-2 text-xs'>
+              {rebateRate > 0
+                ? t(
+                    'When invited users top up, you earn {{rate}}% as rebate quota. Transfer accumulated rewards to your balance anytime.',
+                    { rate: formattedRebateRate }
+                  )
+                : t(
+                    'Earn rewards when users join through your referral link. Transfer accumulated rewards to your balance anytime.'
+                  )}
             </p>
           </div>
         </div>
@@ -85,7 +96,6 @@ export function AffiliateRewardsCard({
           {[
             [t('Pending'), formatQuota(user?.aff_quota ?? 0)],
             [t('Total Earned'), formatQuota(user?.aff_history_quota ?? 0)],
-            [t('Invites'), String(user?.aff_count ?? 0)],
           ].map(([label, value]) => (
             <div key={label}>
               <div className='text-muted-foreground truncate text-[10px] font-medium tracking-wider uppercase'>
@@ -96,6 +106,18 @@ export function AffiliateRewardsCard({
               </div>
             </div>
           ))}
+          <button
+            type='button'
+            className='hover:bg-muted/60 rounded-md px-1 py-0.5 text-center'
+            onClick={onViewInvitees}
+          >
+            <div className='text-muted-foreground truncate text-[10px] font-medium tracking-wider uppercase'>
+              {t('Invites')}
+            </div>
+            <div className='mt-0.5 truncate text-sm font-semibold tabular-nums'>
+              {user?.aff_count ?? 0}
+            </div>
+          </button>
         </div>
 
         <div className='flex items-center gap-2'>
@@ -112,6 +134,15 @@ export function AffiliateRewardsCard({
             tooltip={t('Copy referral link')}
             aria-label={t('Copy referral link')}
           />
+          <Button
+            type='button'
+            variant='outline'
+            onClick={onViewInvitees}
+            className='h-9 shrink-0 px-3'
+            size='sm'
+          >
+            {t('View invitees')}
+          </Button>
           {hasRewards && (
             <Button
               onClick={onTransfer}

@@ -430,6 +430,48 @@ export function UsersMutateDrawer({
 
                   <FormField
                     control={form.control}
+                    name='aff_rebate_rate'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('Exclusive Recharge Rebate Rate')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={0}
+                            max={100}
+                            step='0.01'
+                            value={field.value ?? ''}
+                            onChange={(event) => {
+                              const value = event.currentTarget.value
+                              if (value === '') {
+                                field.onChange(null)
+                                return
+                              }
+                              const parsed = event.currentTarget.valueAsNumber
+                              field.onChange(
+                                Number.isNaN(parsed) ? null : parsed
+                              )
+                            }}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            placeholder={t('Leave empty to use global rate')}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Leave empty to use the global rate. 0 means this user earns no recharge rebate from invitee top-ups.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name='remark'
                     render={({ field }) => (
                       <FormItem>

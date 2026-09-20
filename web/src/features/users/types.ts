@@ -50,6 +50,7 @@ export const userSchema = z.object({
   aff_count: z.number().optional(),
   aff_quota: z.number().optional(),
   aff_history_quota: z.number().optional(),
+  aff_rebate_rate: z.number().nullable().optional(),
   inviter_id: z.number().optional(),
   linux_do_id: z.string().optional(),
   status: userStatusSchema,
@@ -125,6 +126,7 @@ export interface UserFormData {
   quota?: number // Only used when updating user
   group?: string // Only used when updating user
   remark?: string // Only used when updating user
+  aff_rebate_rate?: number | null // Only used when updating user
   admin_permissions?: AdminPermissionMatrix
 }
 
@@ -149,4 +151,41 @@ export interface ManageUserQuotaPayload {
 // Dialog Types
 // ============================================================================
 
-export type UsersDialogType = 'create' | 'update' | 'delete'
+export type UsersDialogType = 'create' | 'update' | 'delete' | 'invitees'
+
+export type RebateRateSource = 'exclusive' | 'global'
+
+export interface InviteeListInviter {
+  id: number
+  username: string
+  display_name: string
+  aff_code: string
+  aff_count: number
+  aff_quota: number
+  aff_history_quota: number
+  aff_rebate_rate: number | null
+  effective_aff_rebate_rate: number
+  rebate_rate_source: RebateRateSource
+}
+
+export interface InviteeListItem {
+  id: number
+  username: string
+  display_name: string
+  status: number
+  created_at: number
+  last_login_at: number
+  recharge_count: number
+  total_pay_money: number
+  last_recharged_at: number
+  quota?: number
+  group?: string
+}
+
+export interface InviteeListResult {
+  inviter: InviteeListInviter
+  items: InviteeListItem[]
+  total: number
+  page: number
+  page_size: number
+}

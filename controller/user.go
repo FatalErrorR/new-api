@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -453,6 +455,40 @@ func TransferAffQuota(c *gin.Context) {
 	common.ApiSuccessI18n(c, i18n.MsgUserTransferSuccess, nil)
 }
 
+func GetSelfInvitees(c *gin.Context) {
+	respondInviteeList(c, c.GetInt("id"), false)
+}
+
+func GetUserInvitees(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	inviter, err := model.GetUserById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !canManageTargetRole(c.GetInt("role"), inviter.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+	respondInviteeList(c, id, true)
+}
+
+func respondInviteeList(c *gin.Context, inviterId int, includeAdminFields bool) {
+	pageInfo := common.GetPageQuery(c)
+	result, err := model.ListInvitees(inviterId, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), includeAdminFields)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	result.Page = pageInfo.GetPage()
+	result.PageSize = pageInfo.GetPageSize()
+	common.ApiSuccess(c, result)
+}
+
 func GetAffCode(c *gin.Context) {
 	id := c.GetInt("id")
 	user, err := model.GetUserById(id, true)
@@ -510,31 +546,33 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 	permissions := calculateUserPermissions(user.Role)
 	permissions["admin_permissions"] = authz.Capabilities(user.Id, user.Role)
 	return map[string]interface{}{
-		"id":                user.Id,
-		"username":          user.Username,
-		"display_name":      user.DisplayName,
-		"role":              user.Role,
-		"status":            user.Status,
-		"email":             user.Email,
-		"github_id":         user.GitHubId,
-		"discord_id":        user.DiscordId,
-		"oidc_id":           user.OidcId,
-		"wechat_id":         user.WeChatId,
-		"telegram_id":       user.TelegramId,
-		"group":             user.Group,
-		"quota":             user.Quota,
-		"used_quota":        user.UsedQuota,
-		"request_count":     user.RequestCount,
-		"aff_code":          user.AffCode,
-		"aff_count":         user.AffCount,
-		"aff_quota":         user.AffQuota,
-		"aff_history_quota": user.AffHistoryQuota,
-		"inviter_id":        user.InviterId,
-		"linux_do_id":       user.LinuxDOId,
-		"setting":           user.Setting,
-		"stripe_customer":   user.StripeCustomer,
-		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
-		"permissions":       permissions,
+		"id":                        user.Id,
+		"username":                  user.Username,
+		"display_name":              user.DisplayName,
+		"role":                      user.Role,
+		"status":                    user.Status,
+		"email":                     user.Email,
+		"github_id":                 user.GitHubId,
+		"discord_id":                user.DiscordId,
+		"oidc_id":                   user.OidcId,
+		"wechat_id":                 user.WeChatId,
+		"telegram_id":               user.TelegramId,
+		"group":                     user.Group,
+		"quota":                     user.Quota,
+		"used_quota":                user.UsedQuota,
+		"request_count":             user.RequestCount,
+		"aff_code":                  user.AffCode,
+		"aff_count":                 user.AffCount,
+		"aff_quota":                 user.AffQuota,
+		"aff_history_quota":         user.AffHistoryQuota,
+		"aff_rebate_rate":           user.AffRebateRate,
+		"effective_aff_rebate_rate": model.ResolveInviterRebateRatePercent(user.AffRebateRate),
+		"inviter_id":                user.InviterId,
+		"linux_do_id":               user.LinuxDOId,
+		"setting":                   user.Setting,
+		"stripe_customer":           user.StripeCustomer,
+		"sidebar_modules":           userSetting.SidebarModules, // 正确提取sidebar_modules字段
+		"permissions":               permissions,
 	}
 }
 
@@ -663,11 +701,27 @@ func GetUserModels(c *gin.Context) {
 }
 
 func UpdateUser(c *gin.Context) {
-	var updatedUser model.User
-	err := common.DecodeJson(c.Request.Body, &updatedUser)
-	if err != nil || updatedUser.Id == 0 {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
+	}
+	var updatedUser model.User
+	if err := common.Unmarshal(body, &updatedUser); err != nil || updatedUser.Id == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	var rawFields map[string]json.RawMessage
+	if err := common.Unmarshal(body, &rawFields); err == nil {
+		if _, ok := rawFields["aff_rebate_rate"]; ok {
+			updatedUser.ApplyAffRebateRate = true
+		}
+	}
+	if updatedUser.ApplyAffRebateRate {
+		if err := model.ValidateAffRebateRate(updatedUser.AffRebateRate); err != nil {
+			common.ApiErrorMsg(c, err.Error())
+			return
+		}
 	}
 	updatedUser.Username = strings.TrimSpace(updatedUser.Username)
 	if updatedUser.Username == "" {
